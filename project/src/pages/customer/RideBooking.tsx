@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { DollarSign, Clock, TrendingUp, Users, Crown, Zap, QrCode, Check } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { MapWithAutocomplete } from '../../components/MapWithAutocomplete';
 import { createRideGeofence, validateNWAGeofence, isPointInNWA } from '../../lib/geofence';
-import { calculateDistance, estimateDuration, optimizeStrangerMatchRoute } from '../../lib/routeOptimization';
+import { calculateDistance, estimateDuration } from '../../lib/routeOptimization';
 import { QRScanner } from '../../components/QRScanner';
 import DriverInfoCard from '../../components/DriverInfoCard';
 import GroupRideCreator from '../../components/GroupRideCreator';
@@ -26,7 +25,6 @@ type RouteInfo = {
 
 export function RideBooking() {
   const { profile } = useAuth();
-  const navigate = useNavigate();
   const [pickupLocation, setPickupLocation] = useState<Location | null>(null);
   const [dropoffLocation, setDropoffLocation] = useState<Location | null>(null);
   const [passengerCount, setPassengerCount] = useState(1);
@@ -49,7 +47,6 @@ export function RideBooking() {
   const [rideStatus, setRideStatus] = useState<'booking' | 'searching' | 'tracking' | 'completed'>('booking');
   const [driverLocation, setDriverLocation] = useState<Location | null>(null);
   const [distanceToPickup, setDistanceToPickup] = useState<number>(0);
-  const [overallETA, setOverallETA] = useState<number>(0);
   const [showTipModal, setShowTipModal] = useState(false);
   const [tipAmount, setTipAmount] = useState<number>(0);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -626,7 +623,6 @@ export function RideBooking() {
     setIsPreferredDriver(false);
     setDriverLocation(null);
     setDistanceToPickup(0);
-    setOverallETA(0);
     setDriverOnAnotherRide(false);
     setDriverAvailableIn(0);
     setRideId(null);
@@ -750,48 +746,7 @@ export function RideBooking() {
     );
   }
 
-  if (matchedDriver && rideStatus === 'searching') {
-    return (
-      <div className="w-full flex items-center justify-center min-h-96">
-        <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-3xl shadow-2xl p-12 max-w-2xl">
-          <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-green-500 rounded-full mx-auto flex items-center justify-center mb-4">
-              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h2 className="text-4xl font-bold text-gray-800 mb-3">Driver Accepted!</h2>
-            <p className="text-xl text-gray-600 mb-6">{matchedDriver.full_name} is heading your way</p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 mb-6">
-            <div className="flex items-center justify-center gap-4 mb-4">
-              <img
-                src={matchedDriver.profile_photo_url}
-                alt={matchedDriver.full_name}
-                className="w-20 h-20 rounded-full object-cover border-4 border-green-500"
-              />
-              <div className="text-left">
-                <p className="text-2xl font-bold text-gray-800">{matchedDriver.full_name}</p>
-                <p className="text-gray-600">{matchedDriver.vehicle_color} {matchedDriver.vehicle_make} {matchedDriver.vehicle_model}</p>
-                <div className="flex items-center gap-1 mt-1">
-                  <span className="text-yellow-400">★</span>
-                  <span className="font-semibold">{matchedDriver.rating}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-2xl p-8 text-center shadow-lg">
-            <p className="text-lg text-green-50 mb-2">Overall Estimated Time</p>
-            <p className="text-6xl font-bold mb-2">{overallETA}</p>
-            <p className="text-2xl text-green-50">minutes</p>
-            <p className="text-sm text-green-100 mt-4">Including pickup, wait time, and your trip</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // "Driver Accepted" state is handled by the tracking view
 
   if (rideStatus === 'tracking' && matchedDriver) {
     return (

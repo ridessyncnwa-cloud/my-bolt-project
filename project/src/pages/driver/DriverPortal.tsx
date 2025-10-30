@@ -30,7 +30,7 @@ type RideRequest = {
 };
 
 export function DriverPortal() {
-  const { profile, signOut, refreshProfile } = useAuth();
+  const { profile, user, signOut, refreshProfile } = useAuth();
   const [driverProfile, setDriverProfile] = useState<DriverProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [switchingRole, setSwitchingRole] = useState(false);
@@ -211,19 +211,19 @@ export function DriverPortal() {
   };
 
   const handleAcceptRide = async () => {
-    if (!pendingRequest || !profile) return;
+    if (!pendingRequest || !profile || !driverProfile) return;
 
     console.log('[Driver] Attempting to accept ride:', {
       rideId: pendingRequest.id,
-      driverId: profile.id,
-      driverUserId: profile.user_id
+      driverProfileId: driverProfile.id,
+      authUserId: user?.id,
     });
 
     try {
       const { data, error } = await supabase
         .from('rides')
         .update({
-          driver_id: profile.id,
+          driver_id: driverProfile.id, // rides.driver_id references driver_profiles.id
           status: 'active',
           accepted_at: new Date().toISOString()
         })
@@ -236,22 +236,19 @@ export function DriverPortal() {
 
       alert('Ride accepted! Navigate to pickup location.');
       setPendingRequest(null);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error accepting ride:', error);
-      alert(`Failed to accept ride: ${error.message || 'Please try again.'}`);
+      const message = error instanceof Error ? error.message : 'Please try again.';
+      alert(`Failed to accept ride: ${message}`);
     }
   };
 
   const handleDeclineRide = async () => {
-    if (!pendingRequest || !profile) return;
+    if (!pendingRequest || !user) return;
 
     console.log('[Driver] Attempting to decline ride:', {
       rideId: pendingRequest.id,
-      rideStatus: pendingRequest.status,
-      rideDriverId: pendingRequest.driver_id,
-      driverProfileId: profile.id,
-      driverUserId: profile.user_id,
-      authUserId: (await supabase.auth.getUser()).data.user?.id
+      authUserId: user.id,
     });
 
     try {
@@ -265,10 +262,13 @@ export function DriverPortal() {
 
       if (fetchError) throw fetchError;
 
-      const declinedByDrivers = currentRide?.declined_by_drivers || [];
-      console.log('[Driver] Current declined list:', declinedByDrivers);
-      console.log('[Driver] Adding user_id to declined:', profile.user_id);
-      declinedByDrivers.push(profile.user_id);
+      const declinedByDrivers: string[] = Array.isArray(currentRide?.declined_by_drivers)
+        ? currentRide.declined_by_drivers
+        : [];
+
+      if (!declinedByDrivers.includes(user.id)) {
+        declinedByDrivers.push(user.id);
+      }
       console.log('[Driver] New declined list:', declinedByDrivers);
 
       const { data, error } = await supabase
@@ -279,15 +279,16 @@ export function DriverPortal() {
         .eq('id', pendingRequest.id)
         .select();
 
-      console.log('[Driver] Decline result:', { data, error, errorDetails: error?.details, errorHint: error?.hint, errorCode: error?.code });
+      console.log('[Driver] Decline result:', { data, error });
 
       if (error) throw error;
 
       console.log('[Driver] Ride declined, added to declined list');
       setPendingRequest(null);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error declining ride:', error);
-      alert(`Failed to decline ride: ${error.message || 'Please try again.'}`);
+      const message = error instanceof Error ? error.message : 'Please try again.';
+      alert(`Failed to decline ride: ${message}`);
     }
   };
 

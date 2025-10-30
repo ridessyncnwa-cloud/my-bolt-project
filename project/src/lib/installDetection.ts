@@ -6,7 +6,6 @@ export const detectAppInstall = (userId?: string) => {
   window.addEventListener('appinstalled', async () => {
     console.log('PWA was installed');
 
-    const isInstalled = true;
     localStorage.setItem('pwa_installed', 'true');
     localStorage.setItem('pwa_install_date', new Date().toISOString());
 

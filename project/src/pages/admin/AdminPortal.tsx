@@ -42,9 +42,7 @@ type Ride = {
   dropoff_location: string;
   total_amount: number;
   created_at: string;
-  profiles: {
-    full_name: string;
-  } | null;
+  profiles: { full_name: string } | { full_name: string }[] | null;
 };
 
 export function AdminPortal() {
@@ -77,7 +75,7 @@ export function AdminPortal() {
     if (appsResult.data) setApplications(appsResult.data);
     if (alertsResult.data) setAlerts(alertsResult.data);
     if (errorsResult.data) setErrors(errorsResult.data);
-    if (ridesListResult.data) setRides(ridesListResult.data as Ride[]);
+    if (ridesListResult.data) setRides(ridesListResult.data as unknown as Ride[]);
 
     setStats({
       totalDrivers: driversResult.count || 0,
@@ -390,7 +388,10 @@ export function AdminPortal() {
           ) : (
             <div className="space-y-4">
               {rides.map((ride) => {
-                const customerName = ride.profiles ? ride.profiles.full_name : 'Unknown Customer';
+                const rel = ride.profiles;
+                const customerName = Array.isArray(rel)
+                  ? (rel[0]?.full_name ?? 'Unknown Customer')
+                  : (rel?.full_name ?? 'Unknown Customer');
                 const statusColors = {
                   requested: 'bg-yellow-100 text-yellow-700',
                   active: 'bg-green-100 text-green-700',

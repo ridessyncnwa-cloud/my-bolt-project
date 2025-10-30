@@ -43,9 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const generateReferralCode = () => {
-    return Math.random().toString(36).substring(2, 10).toUpperCase();
-  };
+  // Referral code generation is handled server-side when needed
 
   const loadProfile = async (userId: string) => {
     const { data, error } = await supabase
